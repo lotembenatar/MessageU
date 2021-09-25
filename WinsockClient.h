@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "ProtocolHeaders.h"
+#include "Util.h"
 
 // Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
 #pragma comment (lib, "Ws2_32.lib")
@@ -25,9 +26,8 @@ class WinsockClient
 private:
 	SOCKET connect_socket = INVALID_SOCKET;
 
-	// Read server info functions
-	void read_file(const std::string& filepath, std::string& file_content);
-	void parse_address_and_port(const std::string& filepath, std::string& servername, std::string& port);
+	// Read server info file and return the servername and port
+	void parse_address_and_port(std::string& servername, std::string& port);
 
 	// Connect the server saved in server.info
 	bool connect_server();

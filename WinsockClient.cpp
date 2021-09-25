@@ -6,25 +6,12 @@
 #define PRINT_ERROR
 #endif
 
-void WinsockClient::read_file(const std::string& filepath, std::string& file_content)
-{
-    std::ifstream file_stream(filepath);
-    std::stringstream read_buffer;
-    read_buffer << file_stream.rdbuf();
-
-    // copy to returned string
-    file_content = read_buffer.str();
-
-    // close stream
-    file_stream.close();
-}
-
-void WinsockClient::parse_address_and_port(const std::string& filepath, std::string& servername, std::string& port)
+void WinsockClient::parse_address_and_port(std::string& servername, std::string& port)
 {
     std::string file_content;
 
     // read file
-    read_file(filepath, file_content);
+    Util::read_file(SERVER_INFO_PATH, file_content);
 
     // find the colon seperator index
     size_t colon_index = file_content.find(":");
@@ -47,7 +34,7 @@ bool WinsockClient::connect_server()
     std::string port;
 
     // Get server address and port from server.info
-    parse_address_and_port(SERVER_INFO_PATH, servername, port);
+    parse_address_and_port(servername, port);
 
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2, 2), &wsa_data);
