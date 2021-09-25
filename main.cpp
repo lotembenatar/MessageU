@@ -4,7 +4,7 @@
 #include <random>
 #include <fstream>
 
-#include "UserActions.h"
+#include "ConsoleApp.h"
 #include "WinsockClient.h"
 
 int test_winsock_client() {
@@ -36,20 +36,9 @@ int test_winsock_client() {
     return 0;
 }
 
-void start_app() {
-    // Display usage
-    UserActions::display_usage();
-
-    while (true)
-    {
-        // User action
-        UserActions::get_action_from_user();
-    }
-}
-
 int main()
 {
-    //start_app();
-    test_winsock_client();
+    ConsoleApp::start();
+    //test_winsock_client();
     return 0;
 }

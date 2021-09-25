@@ -8,13 +8,11 @@
 
 typedef void (*func_ptr)();
 
-class UserActions
+// This class encapsulate the functionality of the application
+class ConsoleApp
 {
 private:
-    // Static class
-    UserActions() {};
-    ~UserActions() {};
-
+    // One-to-one mapping between user input and function to execute
     static const std::map<std::string, func_ptr> client_actions;
 
     // User mapped functions
@@ -28,15 +26,23 @@ private:
     static void send_file();
     static void exit_client();
 
-    // Helper functions
+    // This function to should initialize the const client actions map (input to function)
     static std::map<std::string, func_ptr> create_client_action_map();
+
+    // Helper functions
     static bool create_me_info_file(const std::string& username, uint64_t uuid);
 
-public:
     // Display the usage
     static void display_usage();
 
-    // Get input from user and map the correct function
+    // Get input from user, map the correct function and execute it
     static void get_action_from_user();
+public:
+    // Static class
+    ConsoleApp() = delete;
+    ~ConsoleApp() = delete;
+
+    // Starts the application
+    static void start();
 };
 

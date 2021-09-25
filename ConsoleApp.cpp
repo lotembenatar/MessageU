@@ -1,11 +1,11 @@
-#include "UserActions.h"
+#include "ConsoleApp.h"
 
 #define NOT_IMPLEMENTED {std::cout << __FUNCTION__ << " not implemented" << std::endl;}
 
 // Initialize const client actions
-const std::map<std::string, func_ptr> UserActions::client_actions = UserActions::create_client_action_map();
+const std::map<std::string, func_ptr> ConsoleApp::client_actions = ConsoleApp::create_client_action_map();
 
-void UserActions::register_client()
+void ConsoleApp::register_client()
 {
     std::cout << "Please enter registration user name:" << std::endl;
 
@@ -27,50 +27,50 @@ void UserActions::register_client()
     }
 }
 
-void UserActions::request_for_client_list()
+void ConsoleApp::request_for_client_list()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::request_for_public_key()
+void ConsoleApp::request_for_public_key()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::request_for_waiting_messages()
+void ConsoleApp::request_for_waiting_messages()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::send_text_message()
+void ConsoleApp::send_text_message()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::send_request_for_symmetric_key()
+void ConsoleApp::send_request_for_symmetric_key()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::send_symmetric_key()
+void ConsoleApp::send_symmetric_key()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::send_file()
+void ConsoleApp::send_file()
 {
     NOT_IMPLEMENTED;
 }
 
-void UserActions::exit_client()
+void ConsoleApp::exit_client()
 {
     std::cout << "Bye bye!" << std::endl;
     exit(0);
 }
 
-std::map<std::string, func_ptr> UserActions::create_client_action_map()
+std::map<std::string, func_ptr> ConsoleApp::create_client_action_map()
 {
-    std::map<std::string, func_ptr> client_actions = {
+    std::map<std::string, func_ptr> cam = {
        {"10" , &register_client},
        {"20" , &request_for_client_list},
        {"30" , &request_for_public_key},
@@ -81,11 +81,11 @@ std::map<std::string, func_ptr> UserActions::create_client_action_map()
        {"53" , &send_file},
        {"0" , &exit_client},
     };
-    return client_actions;
+    return cam;
 }
 
 // TODO - add public key
-bool UserActions::create_me_info_file(const std::string& username, uint64_t uuid)
+bool ConsoleApp::create_me_info_file(const std::string& username, uint64_t uuid)
 {
     const char* filepath = "me.info";
 
@@ -112,7 +112,7 @@ bool UserActions::create_me_info_file(const std::string& username, uint64_t uuid
     return true;
 }
 
-void UserActions::display_usage()
+void ConsoleApp::display_usage()
 {
     std::cout << "MessageU client at your service.\n";
     std::cout << "10) Register\n";
@@ -127,7 +127,19 @@ void UserActions::display_usage()
     std::cout << std::endl; // flush buffer
 }
 
-void UserActions::get_action_from_user()
+void ConsoleApp::start()
+{
+    // Display usage
+    display_usage();
+
+    while (true)
+    {
+        // Get user action and execute it
+        get_action_from_user();
+    }
+}
+
+void ConsoleApp::get_action_from_user()
 {
     // Get user input
     std::string action;
