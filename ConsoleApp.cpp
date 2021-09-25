@@ -2,9 +2,6 @@
 
 #define NOT_IMPLEMENTED {std::cout << __FUNCTION__ << " not implemented" << std::endl;}
 
-// Initialize const client actions
-const std::map<std::string, func_ptr> ConsoleApp::client_actions = ConsoleApp::create_client_action_map();
-
 void ConsoleApp::register_client()
 {
     std::cout << "Please enter registration user name:" << std::endl;
@@ -68,20 +65,19 @@ void ConsoleApp::exit_client()
     exit(0);
 }
 
-std::map<std::string, func_ptr> ConsoleApp::create_client_action_map()
+ConsoleApp::ConsoleApp()
 {
-    std::map<std::string, func_ptr> cam = {
-       {"10" , &register_client},
-       {"20" , &request_for_client_list},
-       {"30" , &request_for_public_key},
-       {"40" , &request_for_waiting_messages},
-       {"50" , &send_text_message},
-       {"51" , &send_request_for_symmetric_key},
-       {"52" , &send_symmetric_key},
-       {"53" , &send_file},
-       {"0" , &exit_client},
+    client_actions = {
+       {"10" , &ConsoleApp::register_client},
+       {"20" , &ConsoleApp::request_for_client_list},
+       {"30" , &ConsoleApp::request_for_public_key},
+       {"40" , &ConsoleApp::request_for_waiting_messages},
+       {"50" , &ConsoleApp::send_text_message},
+       {"51" , &ConsoleApp::send_request_for_symmetric_key},
+       {"52" , &ConsoleApp::send_symmetric_key},
+       {"53" , &ConsoleApp::send_file},
+       {"0" , &ConsoleApp::exit_client},
     };
-    return cam;
 }
 
 // TODO - add public key
@@ -124,7 +120,7 @@ void ConsoleApp::display_usage()
     std::cout << "52) Send your symmetric key\n";
     std::cout << "53) Send a file\n";
     std::cout << "0) Exit client\n";
-    std::cout << std::endl; // flush buffer
+    std::cout << std::endl; // drop line and flush buffer
 }
 
 void ConsoleApp::start()
@@ -153,6 +149,7 @@ void ConsoleApp::get_action_from_user()
     }
     else {
         // Correct input - run the mapped function
-        it->second();
+        func_ptr fp = it->second;
+        (this->*fp)();
     }
 }

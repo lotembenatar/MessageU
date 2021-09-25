@@ -6,43 +6,38 @@
 #include <sstream>
 #include <map>
 
-typedef void (*func_ptr)();
-
 // This class encapsulate the functionality of the application
 class ConsoleApp
 {
 private:
+    typedef void (ConsoleApp::* func_ptr)();
+
     // One-to-one mapping between user input and function to execute
-    static const std::map<std::string, func_ptr> client_actions;
+    std::map<std::string, func_ptr> client_actions;
 
     // User mapped functions
-    static void register_client();
-    static void request_for_client_list();
-    static void request_for_public_key();
-    static void request_for_waiting_messages();
-    static void send_text_message();
-    static void send_request_for_symmetric_key();
-    static void send_symmetric_key();
-    static void send_file();
-    static void exit_client();
-
-    // This function to should initialize the const client actions map (input to function)
-    static std::map<std::string, func_ptr> create_client_action_map();
+    void register_client();
+    void request_for_client_list();
+    void request_for_public_key();
+    void request_for_waiting_messages();
+    void send_text_message();
+    void send_request_for_symmetric_key();
+    void send_symmetric_key();
+    void send_file();
+    void exit_client();
 
     // Helper functions
-    static bool create_me_info_file(const std::string& username, uint64_t uuid);
+    bool create_me_info_file(const std::string& username, uint64_t uuid);
 
     // Display the usage
-    static void display_usage();
+    void display_usage();
 
     // Get input from user, map the correct function and execute it
-    static void get_action_from_user();
+    void get_action_from_user();
 public:
-    // Static class
-    ConsoleApp() = delete;
-    ~ConsoleApp() = delete;
+    ConsoleApp();
 
     // Starts the application
-    static void start();
+    void start();
 };
 

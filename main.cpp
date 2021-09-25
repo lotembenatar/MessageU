@@ -38,7 +38,8 @@ int test_winsock_client() {
 
 int main()
 {
-    ConsoleApp::start();
+    ConsoleApp app;
+    app.start();
     //test_winsock_client();
     return 0;
 }
