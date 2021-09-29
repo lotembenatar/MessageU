@@ -18,12 +18,11 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-constexpr int DEFAULT_BUFLEN = 512;
-constexpr const char SERVER_INFO_PATH[] = "server.info";
-
 class WinsockClient
 {
-private:
+	static constexpr int DEFAULT_BUFLEN = 512;
+	static constexpr const char SERVER_INFO_PATH[] = "server.info";
+
 	SOCKET connect_socket = INVALID_SOCKET;
 
 	// Read server info file and return the servername and port
