@@ -6,14 +6,25 @@
 #include <sstream>
 #include <map>
 
+#include "Util.h"
+#include "WinsockClient.h"
+
 // This class encapsulate the functionality of the application
 class ConsoleApp
 {
-private:
+    static constexpr uint8_t CLIENT_VERSION = 1;
+    static constexpr const char ME_INFO_PATH[] = "me.info";
     typedef void (ConsoleApp::* func_ptr)();
 
     // One-to-one mapping between user input and function to execute
-    std::map<std::string, func_ptr> client_actions;
+    const std::map<std::string, func_ptr> client_actions_map;
+
+    // Object for sending requests to server
+    WinsockClient winsock_client;
+
+    // Client ID for this application
+    // Should be initialized on startup or after registration
+    std::vector<uint8_t> client_id;
 
     // User mapped functions
     void register_client();
@@ -27,7 +38,12 @@ private:
     void exit_client();
 
     // Helper functions
-    bool create_me_info_file(const std::string& username, uint64_t uuid);
+    bool create_me_info_file(const std::string& username, const uint8_t* uuid, const uint8_t* public_key) const;
+    void load_me_info_file();
+    bool is_registered();
+
+    // Creates the user input to function map
+    std::map<std::string, func_ptr> create_client_action_map();
 
     // Display the usage
     void display_usage();

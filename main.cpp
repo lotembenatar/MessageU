@@ -9,8 +9,8 @@
 
 int test_winsock_client() {
     WinsockClient winsock_client;
-    server_request_header request_header{};
-    server_response_header response_header{};
+    ServerRequestHeader request_header{};
+    ServerResponseHeader response_header{};
     std::vector<uint8_t> c_payload;
     std::vector<uint8_t> s_payload;
 

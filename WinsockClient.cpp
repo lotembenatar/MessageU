@@ -104,7 +104,7 @@ bool WinsockClient::disconnect_server()
     return true;
 }
 
-bool WinsockClient::send_request(const server_request_header& request_header, const std::vector<uint8_t>& client_payload, server_response_header& response_header, std::vector<uint8_t>& server_payload)
+bool WinsockClient::send_request(const ServerRequestHeader& request_header, const std::vector<uint8_t>& client_payload, ServerResponseHeader& response_header, std::vector<uint8_t>& server_payload)
 {
     int iBytesReceived = 0;
     int iBytesSent = 0;
@@ -130,7 +130,7 @@ bool WinsockClient::send_request(const server_request_header& request_header, co
     // Send the payload - if needed
     if (client_payload.size() > 0)
     {
-        iBytesSent = send(connect_socket, (char*)&client_payload[0], client_payload.size(), 0);
+        iBytesSent = send(connect_socket, (char*)&client_payload[0], static_cast<uint32_t>(client_payload.size()), 0);
         if (iBytesSent == SOCKET_ERROR) {
             printf("send failed with error: %d\n", WSAGetLastError());
             closesocket(connect_socket);

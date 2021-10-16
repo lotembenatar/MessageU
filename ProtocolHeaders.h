@@ -3,15 +3,19 @@
 
 #pragma pack(push, 1)
 
-struct server_request_header
+constexpr uint32_t CLIENT_ID_LENGTH = 16;
+constexpr uint32_t MAX_REGISTRATION_NAME_LENGTH = 255;
+constexpr uint32_t PUBLIC_KEY_LENGTH = 160;
+
+struct ServerRequestHeader
 {
-	uint8_t client_id[16];
+	uint8_t client_id[CLIENT_ID_LENGTH];
 	uint8_t version;
 	uint16_t code;
 	uint32_t payload_size;
 };
 
-enum server_request_codes : uint16_t
+enum class ServerRequestCodes : uint16_t
 {
 	REGISTRATION_CLIENT_REQUEST = 1000,
 	CLIENT_LIST_REQUEST = 1001,
@@ -20,26 +24,25 @@ enum server_request_codes : uint16_t
 	WAITING_MESSAGES_REQUEST = 1004,
 };
 
-struct registration_payload
+struct RegistrationPayload
 {
-	uint8_t name[255];
-	uint8_t public_key[160];
+	char name[MAX_REGISTRATION_NAME_LENGTH] = { 0 };
+	uint8_t public_key[PUBLIC_KEY_LENGTH];
 };
 
-struct retrieve_client_public_key_payload
+struct RetrieveClientPublicKeyPayload
 {
-	uint8_t client_id[16];
+	uint8_t client_id[CLIENT_ID_LENGTH];
 };
 
-struct send_message_to_client_payload_header
+struct SendMessageToClientPayloadHeader
 {
-	uint8_t client_id[16];
+	uint8_t client_id[CLIENT_ID_LENGTH];
 	uint8_t message_type;
 	uint32_t content_size;
-	// the payload content should be added after this struct
 };
 
-enum client_message_type : uint8_t
+enum class ClientMessageType : uint8_t
 {
 	SYMMETRIC_KEY_REQUEST = 1,
 	SEND_SYMMETRIC_KEY = 2,
@@ -47,11 +50,21 @@ enum client_message_type : uint8_t
 	SEND_FILE = 4,
 };
 
-struct server_response_header
+struct ServerResponseHeader
 {
 	uint8_t version;
 	uint16_t code;
 	uint32_t payload_size;
+};
+
+enum class ServerResponseCodes : uint16_t
+{
+	REGISTRATION_SUCCESS = 2000,
+	CLIENT_LIST_RESPONSE = 2001,
+	PUBLIC_KEY_RESPONSE = 2002,
+	MESSAGE_TO_CLIENT_SENT_TO_SERVER = 2003,
+	WAITING_MESSAGES_RESPONSE = 2004,
+	GENERAL_FAILURE = 9000
 };
 
 #pragma pack(pop)

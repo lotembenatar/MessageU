@@ -36,6 +36,6 @@ class WinsockClient
 
 public:
 	// Send request to server and return back the response
-	bool send_request(const server_request_header& request_header, const std::vector<uint8_t>& client_payload, server_response_header& response_header, std::vector<uint8_t>& server_payload);
+	bool send_request(const ServerRequestHeader& request_header, const std::vector<uint8_t>& client_payload, ServerResponseHeader& response_header, std::vector<uint8_t>& server_payload);
 };
 

@@ -1,5 +1,8 @@
+x64/
+x86/
 Debug/*
 Release/*
 MessageU.vcxproj
 MessageU.vcxproj.filters
 MessageU.vcxproj.user
+me.info
