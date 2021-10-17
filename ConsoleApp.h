@@ -12,7 +12,7 @@
 // This class encapsulate the functionality of the application
 class ConsoleApp
 {
-    static constexpr uint8_t CLIENT_VERSION = 1;
+    static constexpr uint8_t CLIENT_VERSION = 2;
     static constexpr const char ME_INFO_PATH[] = "me.info";
     typedef void (ConsoleApp::* func_ptr)();
 

@@ -1,7 +1,8 @@
 #include "ConsoleApp.h"
 #include <cassert>
 
-#define NOT_IMPLEMENTED {std::cout << __FUNCTION__ << " not implemented" << std::endl;}
+#pragma warning (disable:4702)
+#define NOT_IMPLEMENTED {std::cout << __FUNCTION__ << " not implemented" << std::endl; return;}
 
 void ConsoleApp::register_client()
 {
@@ -82,7 +83,7 @@ void ConsoleApp::request_for_client_list()
             {
                 std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint32_t>(s_payload[current_client + client_id_index]);
             }
-            std::cout << "\n";
+            std::cout << " ";
             // Print name
             std::cout << &s_payload[current_client + CLIENT_ID_LENGTH] << std::endl;
         }
@@ -95,7 +96,50 @@ void ConsoleApp::request_for_client_list()
 
 void ConsoleApp::request_for_public_key()
 {
-    NOT_IMPLEMENTED;
+    if (!is_registered()) {
+        std::cout << "User is not registered" << std::endl;
+        return;
+    }
+
+    ServerRequestHeader request_header{};
+    ServerResponseHeader response_header{};
+    std::vector<uint8_t> c_payload;
+    std::vector<uint8_t> s_payload;
+    std::string uuid_from_user;
+
+    // Initialize request header
+    memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
+    request_header.version = CLIENT_VERSION;
+    request_header.code = static_cast<uint16_t>(ServerRequestCodes::PUBLIC_KEY_REQUEST);
+    request_header.payload_size = CLIENT_ID_LENGTH;
+
+    // Get UUID from user
+    std::getline(std::cin, uuid_from_user);
+
+    // Fill client payload with uuid got from user as bytes
+    for (uint32_t i = 0; i < uuid_from_user.length(); i += 2) {
+        std::string byte = uuid_from_user.substr(i, 2);
+        uint8_t byte_as_ascii = static_cast<uint8_t>(std::strtoul(byte.c_str(), NULL, 16));
+        c_payload.push_back(byte_as_ascii);
+    }
+
+    // Send request to server
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::PUBLIC_KEY_RESPONSE))
+    {
+        assert(response_header.payload_size == s_payload.size());
+        
+        // Print client ID
+        for (uint32_t i = 0; i < PUBLIC_KEY_LENGTH; i++)
+        {
+            std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint32_t>(s_payload[CLIENT_ID_LENGTH + i]);
+        }
+
+        std::cout << std::endl;
+    }
+    else
+    {
+        std::cerr << "Request for public key failed: server responded with an error" << std::endl;
+    }
 }
 
 void ConsoleApp::request_for_waiting_messages()
