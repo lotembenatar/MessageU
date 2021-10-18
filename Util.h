@@ -13,5 +13,8 @@ namespace Util
 
 	// Generate random key
 	void generate_random_key(uint8_t* public_key, size_t key_length);
+
+	// Convert string of hex chars to ASCII bytes
+	void convert_hex_str_to_bytes(const std::string& hex_str, std::vector<uint8_t>& bytes);
 };
 

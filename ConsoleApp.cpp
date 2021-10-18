@@ -114,14 +114,11 @@ void ConsoleApp::request_for_public_key()
     request_header.payload_size = CLIENT_ID_LENGTH;
 
     // Get UUID from user
+    std::cout << "Enter UUID for request:" << std::endl;
     std::getline(std::cin, uuid_from_user);
 
     // Fill client payload with uuid got from user as bytes
-    for (uint32_t i = 0; i < uuid_from_user.length(); i += 2) {
-        std::string byte = uuid_from_user.substr(i, 2);
-        uint8_t byte_as_ascii = static_cast<uint8_t>(std::strtoul(byte.c_str(), NULL, 16));
-        c_payload.push_back(byte_as_ascii);
-    }
+    Util::convert_hex_str_to_bytes(uuid_from_user, c_payload);
 
     // Send request to server
     if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::PUBLIC_KEY_RESPONSE))
@@ -221,17 +218,14 @@ void ConsoleApp::load_me_info_file()
     std::string ignore_string, uuid_string;
     std::ifstream me_info_file_stream(ME_INFO_PATH);
 
-    // Ignore the user name line
+    // Ignore the user name in the first line
     std::getline(me_info_file_stream, ignore_string);
 
-    // Convert UUID from hex to ASCII
+    // UUID should be in the second line of the file
     std::getline(me_info_file_stream, uuid_string);
 
-    for (uint32_t i = 0; i < uuid_string.length(); i += 2) {
-        std::string byte = uuid_string.substr(i, 2);
-        uint8_t byte_as_ascii = static_cast<uint8_t>(std::strtoul(byte.c_str(), NULL, 16));
-        client_id.push_back(byte_as_ascii);
-    }
+    // Convert UUID from hex to ASCII
+    Util::convert_hex_str_to_bytes(uuid_string, client_id);
 }
 
 bool ConsoleApp::is_registered()
