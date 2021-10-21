@@ -3,6 +3,7 @@
 
 #pragma warning (disable:4702)
 #define NOT_IMPLEMENTED {std::cout << __FUNCTION__ << " not implemented" << std::endl; return;}
+#define TODO {/*TODO*/}
 
 void ConsoleApp::register_client()
 {
@@ -77,15 +78,19 @@ void ConsoleApp::request_for_client_list()
         std::cout << "There are " << num_of_clients << " in our list:" << std::endl;
         for (uint32_t i = 0; i < num_of_clients; i++)
         {
+            // calculate client index in returned payload
             uint32_t current_client = i * (CLIENT_ID_LENGTH + MAX_REGISTRATION_NAME_LENGTH);
+            // extract username string and uuid and save it in a map
+            std::string current_username((char*)(&s_payload[current_client + CLIENT_ID_LENGTH]));
+            username_to_uuid_map[current_username] = std::vector<uint8_t>(s_payload.begin() + current_client, s_payload.begin() + current_client + CLIENT_ID_LENGTH);
             // Print client ID
-            for (uint32_t client_id_index = 0; client_id_index < CLIENT_ID_LENGTH; client_id_index++)
+            for (const uint8_t byte : username_to_uuid_map[current_username])
             {
-                std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint32_t>(s_payload[current_client + client_id_index]);
+                std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint32_t>(byte);
             }
             std::cout << " ";
             // Print name
-            std::cout << &s_payload[current_client + CLIENT_ID_LENGTH] << std::endl;
+            std::cout << current_username << std::endl;
         }
     }
     else
@@ -146,7 +151,72 @@ void ConsoleApp::request_for_waiting_messages()
 
 void ConsoleApp::send_text_message()
 {
-    NOT_IMPLEMENTED;
+    if (!is_registered()) {
+        std::cout << "User is not registered" << std::endl;
+        return;
+    }
+
+    ServerRequestHeader request_header{};
+    ServerResponseHeader response_header{};
+    SendMessageToClientPayloadHeader payload_header{};
+    std::vector<uint8_t> c_payload;
+    std::vector<uint8_t> s_payload;
+    std::string dest_username;
+    std::string message;
+
+    // Initialize request header
+    memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
+    request_header.version = CLIENT_VERSION;
+    request_header.code = static_cast<uint16_t>(ServerRequestCodes::SEND_MESSAGE_TO_CLIENT);
+    request_header.payload_size = 0;
+
+    // Get name of the destination user
+    std::cout << "Enter destination user name:" << std::endl;
+    std::getline(std::cin, dest_username);
+
+    // Figure out the UUID of the destination user by its name
+    auto it = username_to_uuid_map.find(dest_username);
+    if (it == username_to_uuid_map.end()) {
+        // Not found
+        std::cerr << "Not user with such name (You may need to update your user list)" << std::endl;
+        return;
+    }
+    else {
+        // Found - Copy the destination id
+        memcpy_s(payload_header.client_id, CLIENT_ID_LENGTH, &it->second[0], it->second.size());
+    }
+
+    // Get message from user
+    std::cout << "Type your message:" << std::endl;
+    std::getline(std::cin, message);
+
+    if (message.size() > ULONG_MAX) {
+        std::cerr << "Message is too big" << std::endl;
+        return;
+    }
+
+    // Assign payload header members
+    payload_header.message_type = static_cast<uint8_t>(ClientMessageType::SEND_TEXT_MESSAGE);
+    payload_header.content_size = static_cast<uint32_t>(message.size());
+
+    // Encrypt message with symmetric key - promt error if there is no symmetric key yet
+    TODO;
+    
+    // Insert payload header and message to payload vector
+    s_payload.insert(s_payload.begin(), (uint8_t*)&payload_header, (uint8_t*)(&payload_header + sizeof(SendMessageToClientPayloadHeader)));
+    s_payload.insert(s_payload.end(), message.begin(), message.end());
+
+    // Send request to server
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER))
+    {
+        assert(response_header.payload_size == s_payload.size());
+
+        std::cout << "Message sent to server" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Send text message failed: server responded with an error" << std::endl;
+    }
 }
 
 void ConsoleApp::send_request_for_symmetric_key()

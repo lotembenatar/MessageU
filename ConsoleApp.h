@@ -26,6 +26,9 @@ class ConsoleApp
     // Should be initialized on startup or after registration
     std::vector<uint8_t> client_id;
 
+    // User name to UUID map
+    std::map<std::string, std::vector<uint8_t>> username_to_uuid_map;
+
     // User mapped functions
     void register_client();
     void request_for_client_list();
