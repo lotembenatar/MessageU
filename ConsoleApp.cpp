@@ -19,7 +19,7 @@ void ConsoleApp::register_client()
 
     RegistrationPayload r_payload;
     request_header.version = CLIENT_VERSION;
-    request_header.code = static_cast<uint16_t>(ServerRequestCodes::REGISTRATION_CLIENT_REQUEST);
+    request_header.code = ServerRequestCodes::REGISTRATION_CLIENT_REQUEST;
     request_header.payload_size = sizeof(RegistrationPayload);
 
     // Get username from client
@@ -33,7 +33,7 @@ void ConsoleApp::register_client()
     c_payload.assign((uint8_t*)&r_payload, (uint8_t*)&r_payload + sizeof(RegistrationPayload));
 
     // Send registration request to server
-    if (winsock_client.send_request(request_header, c_payload, response_header, client_id) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::REGISTRATION_SUCCESS))
+    if (winsock_client.send_request(request_header, c_payload, response_header, client_id) && response_header.code == ServerResponseCodes::REGISTRATION_SUCCESS)
     {
         std::cout << "Registering with username " << r_payload.name << " ..." << std::endl;
 
@@ -68,10 +68,10 @@ void ConsoleApp::request_for_client_list()
     // Initialize request header
     memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
     request_header.version = CLIENT_VERSION;
-    request_header.code = static_cast<uint16_t>(ServerRequestCodes::CLIENT_LIST_REQUEST);
+    request_header.code = ServerRequestCodes::CLIENT_LIST_REQUEST;
     request_header.payload_size = 0;
 
-    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::CLIENT_LIST_RESPONSE))
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == ServerResponseCodes::CLIENT_LIST_RESPONSE)
     {
         assert(response_header.payload_size == s_payload.size());
         uint32_t num_of_clients = response_header.payload_size / (CLIENT_ID_LENGTH + MAX_REGISTRATION_NAME_LENGTH);
@@ -115,7 +115,7 @@ void ConsoleApp::request_for_public_key()
     // Initialize request header
     memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
     request_header.version = CLIENT_VERSION;
-    request_header.code = static_cast<uint16_t>(ServerRequestCodes::PUBLIC_KEY_REQUEST);
+    request_header.code = ServerRequestCodes::PUBLIC_KEY_REQUEST;
     request_header.payload_size = CLIENT_ID_LENGTH;
 
     // Get UUID from user
@@ -126,7 +126,7 @@ void ConsoleApp::request_for_public_key()
     Util::convert_hex_str_to_bytes(uuid_from_user, c_payload);
 
     // Send request to server
-    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::PUBLIC_KEY_RESPONSE))
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == ServerResponseCodes::PUBLIC_KEY_RESPONSE)
     {
         assert(response_header.payload_size == s_payload.size());
         
@@ -146,7 +146,73 @@ void ConsoleApp::request_for_public_key()
 
 void ConsoleApp::request_for_waiting_messages()
 {
-    NOT_IMPLEMENTED;
+    if (!is_registered()) {
+        std::cout << "User is not registered" << std::endl;
+        return;
+    }
+
+    ServerRequestHeader request_header{};
+    ServerResponseHeader response_header{};
+    std::vector<uint8_t> c_payload;
+    std::vector<uint8_t> s_payload;
+
+    // Initialize request header
+    memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
+    request_header.version = CLIENT_VERSION;
+    request_header.code = ServerRequestCodes::WAITING_MESSAGES_REQUEST;
+    request_header.payload_size = 0;
+
+    // Send request to server
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == ServerResponseCodes::WAITING_MESSAGES_RESPONSE)
+    {
+        assert(response_header.payload_size == s_payload.size());
+
+        uint32_t s_payload_index = 0;
+        while (s_payload_index < s_payload.size())
+        {
+            WaitingMessageResponseHeader* message_header = (WaitingMessageResponseHeader*)&s_payload[s_payload_index];
+            std::cout << "From: ";
+            // Linear search on binary tree
+            for (const auto& pair : username_to_uuid_map) {
+                std::vector<uint8_t> uuid_vector;
+                uuid_vector.assign(message_header->client_id, message_header->client_id + CLIENT_ID_LENGTH);
+                if (pair.second == uuid_vector)
+                {
+                    std::cout << pair.first;
+                    break;
+                }
+            }
+            std::cout << "\nContent:\n";
+            switch (message_header->message_type)
+            {
+            case ClientMessageType::SYMMETRIC_KEY_REQUEST:
+                std::cout << "Request for symmetric key";
+                break;
+            case ClientMessageType::SEND_SYMMETRIC_KEY:
+                std::cout << "symmetric key recieved";
+                break;
+            case ClientMessageType::SEND_TEXT_MESSAGE:
+                for (uint32_t i = 0; i < message_header->message_size; i++)
+                {
+                    std::cout << s_payload[s_payload_index + sizeof(WaitingMessageResponseHeader) + i];
+                }
+                break;
+            case ClientMessageType::SEND_FILE:
+                std::cout << "file";
+                break;
+            default:
+                std::cerr << "Error: unknown message type: " << static_cast<uint32_t>(message_header->message_type);
+                break;
+            }
+            std::cout << "\n----<EOM>-----" << std::endl;
+            // Increment index to next message
+            s_payload_index += sizeof(WaitingMessageResponseHeader) + message_header->message_size;
+        }
+    }
+    else
+    {
+        std::cerr << "Request for waiting messages failed: server responded with an error" << std::endl;
+    }
 }
 
 void ConsoleApp::send_text_message()
@@ -167,7 +233,7 @@ void ConsoleApp::send_text_message()
     // Initialize request header
     memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
     request_header.version = CLIENT_VERSION;
-    request_header.code = static_cast<uint16_t>(ServerRequestCodes::SEND_MESSAGE_TO_CLIENT);
+    request_header.code = ServerRequestCodes::SEND_MESSAGE_TO_CLIENT;
 
     // Get name of the destination user
     std::cout << "Enter destination user name:" << std::endl;
@@ -195,21 +261,21 @@ void ConsoleApp::send_text_message()
     }
 
     // Assign payload header members
-    payload_header.message_type = static_cast<uint8_t>(ClientMessageType::SEND_TEXT_MESSAGE);
+    payload_header.message_type = ClientMessageType::SEND_TEXT_MESSAGE;
     payload_header.content_size = static_cast<uint32_t>(message.size());
 
     // Encrypt message with symmetric key - promt error if there is no symmetric key yet
     TODO;
     
     // Insert payload header and message to payload vector
-    s_payload.insert(s_payload.begin(), (uint8_t*)&payload_header, (uint8_t*)(&payload_header + sizeof(SendMessageToClientPayloadHeader)));
-    s_payload.insert(s_payload.end(), message.begin(), message.end());
+    c_payload.insert(c_payload.begin(), (uint8_t*)&payload_header, (uint8_t*)(&payload_header) + sizeof(SendMessageToClientPayloadHeader));
+    c_payload.insert(c_payload.end(), message.begin(), message.end());
 
     // Initialize payload size
-    request_header.payload_size = static_cast<uint32_t>(s_payload.size());
+    request_header.payload_size = static_cast<uint32_t>(c_payload.size());
 
     // Send request to server
-    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER))
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER)
     {
         assert(response_header.payload_size == s_payload.size());
 
@@ -238,7 +304,7 @@ void ConsoleApp::send_request_for_symmetric_key()
     // Initialize request header
     memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
     request_header.version = CLIENT_VERSION;
-    request_header.code = static_cast<uint16_t>(ServerRequestCodes::SEND_MESSAGE_TO_CLIENT);
+    request_header.code = ServerRequestCodes::SEND_MESSAGE_TO_CLIENT;
     request_header.payload_size = sizeof(SendMessageToClientPayloadHeader);
 
     // Get name of the destination user
@@ -258,11 +324,14 @@ void ConsoleApp::send_request_for_symmetric_key()
     }
 
     // Assign payload header members
-    payload_header.message_type = static_cast<uint8_t>(ClientMessageType::SYMMETRIC_KEY_REQUEST);
+    payload_header.message_type = ClientMessageType::SYMMETRIC_KEY_REQUEST;
     payload_header.content_size = 0;
 
+    // Insert payload header to client payload vector
+    c_payload.insert(c_payload.begin(), (uint8_t*)&payload_header, (uint8_t*)(&payload_header + sizeof(SendMessageToClientPayloadHeader)));
+
     // Send request to server
-    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER))
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER)
     {
         assert(response_header.payload_size == s_payload.size());
 
