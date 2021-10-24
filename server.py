@@ -25,11 +25,22 @@ class ServerCodes(Enum):
     WAITING_MESSAGES_RESPONSE = 2004
     GENERAL_FAILURE = 9000
 
+class Message:
+    def __init__(self, message):
+        self.message = message # really??
+
 class ClientStruct:
     def __init__(self, name, public_key) -> None:
         self.name = name
         self.uuid = bytes.fromhex(uuid.uuid4().hex)
         self.public_key = public_key
+        self.waiting_messages = [] # List of Message
+
+    def add_message(self, message):
+        pass
+
+    def pull_messages(self):
+        pass
 
 class RequestHandler:
     def register_user(self, clientsocket):
@@ -80,6 +91,12 @@ class RequestHandler:
         server_header = struct.pack('<B H I', server_version, ServerCodes.GENERAL_FAILURE.value, 0)
         clientsocket.sendall(server_header)
 
+    def text_message_request(self, clientsocket):
+        print("Text message request not implemented")
+
+    def awaiting_messages_request(self, clientsocket):
+        print("Awaiting messages request not implemented")
+
 class Server:
     def __init__(self):
         self.host = "127.0.0.1"
@@ -123,6 +140,10 @@ class Server:
             self.request_handler.client_list_request(clientsocket)
         elif client_code == ClientCodes.PUBLIC_KEY_REQUEST.value:
             self.request_handler.public_key_request(clientsocket)
+        elif client_code == ClientCodes.SEND_MESSAGE_TO_CLIENT.value:
+            self.request_handler.text_message_request(clientsocket)
+        elif client_code == ClientCodes.WAITING_MESSAGES_REQUEST.value:
+            self.request_handler.awaiting_messages_request(clientsocket)
         else:
             print("Unsupported request from client", client_code)
         # Close connection

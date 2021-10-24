@@ -168,7 +168,6 @@ void ConsoleApp::send_text_message()
     memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
     request_header.version = CLIENT_VERSION;
     request_header.code = static_cast<uint16_t>(ServerRequestCodes::SEND_MESSAGE_TO_CLIENT);
-    request_header.payload_size = 0;
 
     // Get name of the destination user
     std::cout << "Enter destination user name:" << std::endl;
@@ -178,7 +177,7 @@ void ConsoleApp::send_text_message()
     auto it = username_to_uuid_map.find(dest_username);
     if (it == username_to_uuid_map.end()) {
         // Not found
-        std::cerr << "Not user with such name (You may need to update your user list)" << std::endl;
+        std::cerr << "No user with such name (You may need to update your user list)" << std::endl;
         return;
     }
     else {
@@ -206,6 +205,9 @@ void ConsoleApp::send_text_message()
     s_payload.insert(s_payload.begin(), (uint8_t*)&payload_header, (uint8_t*)(&payload_header + sizeof(SendMessageToClientPayloadHeader)));
     s_payload.insert(s_payload.end(), message.begin(), message.end());
 
+    // Initialize payload size
+    request_header.payload_size = static_cast<uint32_t>(s_payload.size());
+
     // Send request to server
     if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER))
     {
@@ -221,7 +223,55 @@ void ConsoleApp::send_text_message()
 
 void ConsoleApp::send_request_for_symmetric_key()
 {
-    NOT_IMPLEMENTED;
+    if (!is_registered()) {
+        std::cout << "User is not registered" << std::endl;
+        return;
+    }
+
+    ServerRequestHeader request_header{};
+    ServerResponseHeader response_header{};
+    SendMessageToClientPayloadHeader payload_header{};
+    std::vector<uint8_t> c_payload;
+    std::vector<uint8_t> s_payload;
+    std::string dest_username;
+
+    // Initialize request header
+    memcpy_s(request_header.client_id, CLIENT_ID_LENGTH, &client_id[0], client_id.size());
+    request_header.version = CLIENT_VERSION;
+    request_header.code = static_cast<uint16_t>(ServerRequestCodes::SEND_MESSAGE_TO_CLIENT);
+    request_header.payload_size = sizeof(SendMessageToClientPayloadHeader);
+
+    // Get name of the destination user
+    std::cout << "Enter destination user name:" << std::endl;
+    std::getline(std::cin, dest_username);
+
+    // Figure out the UUID of the destination user by its name
+    auto it = username_to_uuid_map.find(dest_username);
+    if (it == username_to_uuid_map.end()) {
+        // Not found
+        std::cerr << "No user with such name (You may need to update your user list)" << std::endl;
+        return;
+    }
+    else {
+        // Found - Copy the destination id
+        memcpy_s(payload_header.client_id, CLIENT_ID_LENGTH, &it->second[0], it->second.size());
+    }
+
+    // Assign payload header members
+    payload_header.message_type = static_cast<uint8_t>(ClientMessageType::SYMMETRIC_KEY_REQUEST);
+    payload_header.content_size = 0;
+
+    // Send request to server
+    if (winsock_client.send_request(request_header, c_payload, response_header, s_payload) && response_header.code == static_cast<uint16_t>(ServerResponseCodes::MESSAGE_TO_CLIENT_SENT_TO_SERVER))
+    {
+        assert(response_header.payload_size == s_payload.size());
+
+        std::cout << "Message sent to server" << std::endl;
+    }
+    else
+    {
+        std::cerr << "Send text message failed: server responded with an error" << std::endl;
+    }
 }
 
 void ConsoleApp::send_symmetric_key()
