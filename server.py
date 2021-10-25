@@ -10,6 +10,9 @@ from enum import Enum
 server_version = 1
 clients = [] # List of ClientStruct
 
+CLIENT_UUID_LENGTH = 16
+PUBLIC_KEY_LENGTH = 160
+CLIENT_NAME_MAX_LENGTH = 255
 REGISTRATION_PAYLOAD_SIZE = 415
 SEND_MESSAGE_PAYLOAD_HEADER_SIZE = 21
 
@@ -72,11 +75,11 @@ class RequestHandler:
     
     def client_list_request(self, clientsocket):
         # Send header
-        server_header = struct.pack('<B H I', server_version, ServerCodes.CLIENT_LIST_RESPONSE.value, len(clients) * (16 + 255))
+        server_header = struct.pack('<B H I', server_version, ServerCodes.CLIENT_LIST_RESPONSE.value, len(clients) * (CLIENT_UUID_LENGTH + CLIENT_NAME_MAX_LENGTH))
         clientsocket.sendall(server_header)
         # Send each saved client
         for client in clients:
-            client_null_terminated_str_name = client.name.encode() + b'\0'*(255 - len(client.name.encode()))
+            client_null_terminated_str_name = client.name.encode() + b'\0'*(CLIENT_NAME_MAX_LENGTH - len(client.name.encode()))
             clientsocket.sendall(client.uuid + client_null_terminated_str_name)
     
     def public_key_request(self, clientsocket, client_uuid):
@@ -100,7 +103,7 @@ class RequestHandler:
                 message_uuid = client.add_message(message_type, sender_client, message_content)
                 # Send back success
                 server_header = struct.pack('<B H I', server_version, ServerCodes.MESSAGE_TO_CLIENT_SENT_TO_SERVER.value, len(dest_client) + 4)
-                server_payload = struct.pack('<16s I', dest_client, message_uuid)
+                server_payload = struct.pack('<%ds I' % CLIENT_UUID_LENGTH, dest_client, message_uuid)
                 clientsocket.sendall(server_header + server_payload)
                 return
 
@@ -109,7 +112,7 @@ class RequestHandler:
         for client in clients:
             if client_uuid == client.uuid:
                 for message in client.pull_messages():
-                    server_payload += struct.pack('<16s I B I', message.sender, message.message_uuid, message.type, len(message.content)) + message.content
+                    server_payload += struct.pack('<%ds I B I' % CLIENT_UUID_LENGTH, message.sender, message.message_uuid, message.type, len(message.content)) + message.content
         server_header = struct.pack('<B H I', server_version, ServerCodes.WAITING_MESSAGES_RESPONSE.value, len(server_payload))
         clientsocket.sendall(server_header + server_payload)
 
@@ -145,7 +148,7 @@ class Server:
     def handle_client(self, clientsocket):
         """Client entry point"""
         # Receive header from client
-        client_id, client_version, client_code, client_payload_size = struct.unpack('<16s B H I', clientsocket.recv(23))
+        client_id, client_version, client_code, client_payload_size = struct.unpack('<%ds B H I' % CLIENT_UUID_LENGTH, clientsocket.recv(23))
         # Print header for monitoring
         print("Client ID = %s\nClient Version = %d\nClient Code = %d\nClient Payload Size = %d" % (client_id, client_version, client_code, client_payload_size))
         # Handle request
@@ -155,7 +158,7 @@ class Server:
                 print("Error: Incorrect payload size, Got %d and expected %d" % (client_payload_size, REGISTRATION_PAYLOAD_SIZE))
                 return
             try:
-                client_name, client_public_key = struct.unpack('<255s 160s', clientsocket.recv(REGISTRATION_PAYLOAD_SIZE))
+                client_name, client_public_key = struct.unpack('<%ds %ds' % (CLIENT_NAME_MAX_LENGTH, PUBLIC_KEY_LENGTH), clientsocket.recv(REGISTRATION_PAYLOAD_SIZE))
             except:
                 print("Error: Could not get client payload")
                 return
@@ -168,7 +171,7 @@ class Server:
         elif client_code == ClientCodes.PUBLIC_KEY_REQUEST.value:
             # Get payload from user
             try:
-                client_uuid = struct.unpack('<16s', clientsocket.recv(16))
+                client_uuid = struct.unpack('<%ds' % CLIENT_UUID_LENGTH, clientsocket.recv(CLIENT_UUID_LENGTH))
             except:
                 print("Error: Could not get client payload")
                 return
@@ -180,7 +183,7 @@ class Server:
                 print("Error: Payload header is too small, Got %d and expected header is %d" % (client_payload_size, SEND_MESSAGE_PAYLOAD_HEADER_SIZE))
                 return
             try:
-                dest_client, message_type, message_size = struct.unpack('<16s B I', clientsocket.recv(SEND_MESSAGE_PAYLOAD_HEADER_SIZE))
+                dest_client, message_type, message_size = struct.unpack('<%ds B I' % CLIENT_UUID_LENGTH, clientsocket.recv(SEND_MESSAGE_PAYLOAD_HEADER_SIZE))
                 message_content = clientsocket.recv(message_size)
             except:
                 print("Error: Could not get client payload")
