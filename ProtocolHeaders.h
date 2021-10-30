@@ -58,7 +58,7 @@ struct ServerResponseHeader
 struct RegistrationPayload
 {
 	char name[MAX_REGISTRATION_NAME_LENGTH] = { 0 };
-	uint8_t public_key[PUBLIC_KEY_LENGTH];
+	char public_key[PUBLIC_KEY_LENGTH];
 };
 
 struct RetrieveClientPublicKeyPayload

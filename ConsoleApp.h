@@ -9,6 +9,17 @@
 #include "Util.h"
 #include "WinsockClient.h"
 
+#include "Base64Wrapper.h"
+#include "RSAWrapper.h"
+#include "AESWrapper.h"
+
+struct Client {
+    std::vector<uint8_t> uuid;
+    std::string name;
+    std::vector<uint8_t> public_key;
+    std::vector<uint8_t> session_key;
+};
+
 // This class encapsulate the functionality of the application
 class ConsoleApp
 {
@@ -26,8 +37,11 @@ class ConsoleApp
     // Should be initialized on startup or after registration
     std::vector<uint8_t> client_id;
 
-    // User name to UUID map
-    std::map<std::string, std::vector<uint8_t>> username_to_uuid_map;
+    // Private key in base64 representation for current client
+    std::string base64_private_key;
+
+    // User name to client map - initialized in client list request
+    std::map<std::string, Client> username_to_client_map;
 
     // User mapped functions
     void register_client();
@@ -41,7 +55,8 @@ class ConsoleApp
     void exit_client();
 
     // Helper functions
-    bool create_me_info_file(const std::string& username, const uint8_t* uuid, const uint8_t* public_key) const;
+    void send_message_to_client(ClientMessageType message_type); // Unify all message requests
+    bool create_me_info_file(const std::string& username, const uint8_t* uuid) const;
     void load_me_info_file();
     bool is_registered();
 

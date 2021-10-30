@@ -6,21 +6,28 @@
 #define PRINT_ERROR
 #endif
 
-void WinsockClient::parse_address_and_port(std::string& servername, std::string& port)
+bool WinsockClient::parse_address_and_port(std::string& servername, std::string& port)
 {
     std::string file_content;
 
     // read file
-    Util::read_file(SERVER_INFO_PATH, file_content);
+    if (Util::read_file(SERVER_INFO_PATH, file_content))
+    {
+        // find the colon seperator index
+        size_t colon_index = file_content.find(":");
 
-    // find the colon seperator index
-    size_t colon_index = file_content.find(":");
+        // copy the servername
+        servername = file_content.substr(0, colon_index);
 
-    // copy the servername
-    servername = file_content.substr(0, colon_index);
+        // copy port section
+        port = file_content.substr(colon_index + 1);
 
-    // copy port section
-    port = file_content.substr(colon_index + 1);
+        return true;
+    }
+
+    // File not found
+    std::cerr << "File " << SERVER_INFO_PATH << " Not found" << std::endl;
+    return false;
 }
 
 bool WinsockClient::connect_server()
@@ -34,13 +41,16 @@ bool WinsockClient::connect_server()
     std::string port;
 
     // Get server address and port from server.info
-    parse_address_and_port(servername, port);
+    if (!parse_address_and_port(servername, port)) {
+        std::cerr << "Was not able to parse server address and port" << std::endl;
+        return false;
+    }
 
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2, 2), &wsa_data);
     if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
-        return 1;
+        std::cerr << "WSAStartup failed with error: " << iResult << std::endl;
+        return false;
     }
 
     ZeroMemory(&hints, sizeof(hints));
@@ -51,7 +61,7 @@ bool WinsockClient::connect_server()
     // Resolve the server address and port
     iResult = getaddrinfo(servername.c_str(), port.c_str(), &hints, &result);
     if (iResult != 0) {
-        printf("getaddrinfo failed with error: %d\n", iResult);
+        std::cerr << "getaddrinfo failed with error: " << iResult << std::endl;
         WSACleanup();
         return false;
     }
@@ -62,7 +72,7 @@ bool WinsockClient::connect_server()
         // Create a SOCKET for connecting to server
         connect_socket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (connect_socket == INVALID_SOCKET) {
-            printf("socket failed with error: %ld\n", WSAGetLastError());
+            std::cerr << "socket failed with error: " << WSAGetLastError() << std::endl;
             WSACleanup();
             return false;
         }
@@ -80,7 +90,7 @@ bool WinsockClient::connect_server()
     freeaddrinfo(result);
 
     if (connect_socket == INVALID_SOCKET) {
-        printf("Unable to connect to server!\n");
+        std::cerr << "Unable to connect to server!" << std::endl;
         WSACleanup();
         return false;
     }
@@ -95,7 +105,7 @@ bool WinsockClient::disconnect_server()
     // shutdown the send half of the connection since no more data will be sent
     iResult = shutdown(connect_socket, SD_SEND);
     if (iResult == SOCKET_ERROR) {
-        printf("shutdown failed: %d\n", WSAGetLastError());
+        std::cerr << "shutdown failed: " << WSAGetLastError() << std::endl;
         closesocket(connect_socket);
         WSACleanup();
         return false;
@@ -112,16 +122,12 @@ bool WinsockClient::send_request(const ServerRequestHeader& request_header, cons
     uint8_t recvbuf[DEFAULT_BUFLEN] = { 0 };
 
     // First connect to server
-    if (!connect_server())
-    {
-        std::cerr << "Unable to connect to server" << std::endl;
-        return false;
-    }
+    if (!connect_server()) return false;
 
     // Send the request header
     iBytesSent = send(connect_socket, (char*)&request_header, sizeof(request_header), 0);
     if (iBytesSent == SOCKET_ERROR) {
-        printf("send failed with error: %d\n", WSAGetLastError());
+        std::cerr << "send failed with error: " << WSAGetLastError() << std::endl;
         closesocket(connect_socket);
         WSACleanup();
         return false;
@@ -132,7 +138,7 @@ bool WinsockClient::send_request(const ServerRequestHeader& request_header, cons
     {
         iBytesSent = send(connect_socket, (char*)&client_payload[0], static_cast<uint32_t>(client_payload.size()), 0);
         if (iBytesSent == SOCKET_ERROR) {
-            printf("send failed with error: %d\n", WSAGetLastError());
+            std::cerr << "send failed with error: " << WSAGetLastError() << std::endl;
             closesocket(connect_socket);
             WSACleanup();
             return false;
@@ -140,11 +146,7 @@ bool WinsockClient::send_request(const ServerRequestHeader& request_header, cons
     }
 
     // Shut down the server connection because no more data will be sent
-    if (!disconnect_server())
-    {
-        std::cerr << "Unable to disconnect from server" << std::endl;
-        return false;
-    }
+    if (!disconnect_server()) return false;
 
     // Retrieve the response header
     iBytesReceived = recv(connect_socket, (char*)&response_header, sizeof(response_header), MSG_WAITALL);

@@ -26,7 +26,7 @@ class WinsockClient
 	SOCKET connect_socket = INVALID_SOCKET;
 
 	// Read server info file and return the servername and port
-	void parse_address_and_port(std::string& servername, std::string& port);
+	bool parse_address_and_port(std::string& servername, std::string& port);
 
 	// Connect the server saved in server.info
 	bool connect_server();
