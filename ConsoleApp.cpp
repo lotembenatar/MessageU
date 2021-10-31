@@ -1,10 +1,6 @@
 #include "ConsoleApp.h"
 #include <cassert>
 
-#pragma warning (disable:4702)
-#define NOT_IMPLEMENTED {std::cout << __FUNCTION__ << " not implemented" << std::endl; return;}
-#define TODO {/*TODO*/}
-
 void ConsoleApp::register_client()
 {
     if (is_registered())
@@ -148,7 +144,7 @@ void ConsoleApp::request_for_public_key()
         it->second.public_key.assign(s_payload.begin() + CLIENT_ID_LENGTH, s_payload.begin() + CLIENT_ID_LENGTH + RSAPublicWrapper::KEYSIZE);
         
         // Print client public key to console
-        for (uint32_t i = 0; i < PUBLIC_KEY_LENGTH; i++)
+        for (uint32_t i = 0; i < RSAPublicWrapper::KEYSIZE; i++)
         {
             std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<uint32_t>(s_payload[CLIENT_ID_LENGTH + i]);
         }
@@ -462,7 +458,7 @@ bool ConsoleApp::create_me_info_file(const std::string& username, const uint8_t*
     fileStream.write(uuid_as_str.c_str(), uuid_as_str.length());
     fileStream.write("\n", 1);
 
-    // Write private key - TODO should be base64
+    // Write private key
     fileStream.write(base64_private_key.c_str(), base64_private_key.length());
 
     // close stream
